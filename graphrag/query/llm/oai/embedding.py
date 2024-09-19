@@ -27,6 +27,9 @@ from graphrag.query.llm.oai.typing import (
 from graphrag.query.llm.text_utils import chunk_text
 from graphrag.query.progress import StatusReporter
 
+from langchain_community.embeddings import OllamaEmbeddings
+
+
 
 class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
     """Wrapper for OpenAI Embedding models."""
@@ -131,13 +134,9 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
             for attempt in retryer:
                 with attempt:
                     embedding = (
-                        self.sync_client.embeddings.create(  # type: ignore
-                            input=text,
+                        OllamaEmbeddings(
                             model=self.model,
-                            **kwargs,  # type: ignore
-                        )
-                        .data[0]
-                        .embedding
+                        ).embed_query(text)
                         or []
                     )
                     return (embedding, len(text))
@@ -164,12 +163,9 @@ class OpenAIEmbedding(BaseTextEmbedding, OpenAILLMImpl):
             async for attempt in retryer:
                 with attempt:
                     embedding = (
-                        await self.async_client.embeddings.create(  # type: ignore
-                            input=text,
+                        await OllamaEmbeddings(
                             model=self.model,
-                            **kwargs,  # type: ignore
-                        )
-                    ).data[0].embedding or []
+                        ).embed_query(text) or [] )
                     return (embedding, len(text))
         except RetryError as e:
             self._reporter.error(
